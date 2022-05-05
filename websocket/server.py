@@ -3,7 +3,6 @@ from flask import Flask, render_template, Response
 import cv2
 #플라스크 객체 생성
 app = Flask(__name__)
-camera = cv2.VideoCapture(0)
 
 #우리가 작성한 코드
 import natsort
