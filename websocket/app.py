@@ -1,13 +1,14 @@
-#video_server.py
 from flask import Flask, render_template, Response
 import cv2
 #플라스크 객체 생성
 app = Flask(__name__)
+camera = cv2.VideoCapture(0)
 
-#우리가 작성한 코드
+# import library 
 import natsort
 import numpy as np
 import os
+from matplotlib import pyplot as plt
 import time
 import mediapipe as mp
 import sys
@@ -15,22 +16,13 @@ from glob import glob
 from PIL import Image, ImageDraw, ImageFont
 import random
 import math
-
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 from tensorflow.keras.callbacks import TensorBoard
 
-
-from simple_websocket_server import WebSocketServer, WebSocket
-import base64, cv2
-import numpy as np
-import warnings
-warnings.simplefilter("ignore", DeprecationWarning)
-
 mp_holistic = mp.solutions.holistic
 mp_drawing = mp.solutions.drawing_utils
 mp_face_mesh = mp.solutions.face_mesh
-
 
 def mediapipe_detection(image, model):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -79,44 +71,55 @@ model.load_weights('C:/Users/MASTER/actionxhand_data25X90_0307_1423.h5')
 font = ImageFont.truetype("fonts/HMFMMUEX.TTC", 10)
 font2 = ImageFont.truetype("fonts/HMFMMUEX.TTC", 20)
 blue_color = (255,0,0)
+cap = cv2.VideoCapture(0)
 
 def generate_frames():
-    # 웹소켓을 통해 메시지(dataURL)를 받으면 opencv로 읽을수 있는 형태로 변환
-    class SimpleEcho(WebSocket):
-        def handle(self):
-            msg = self.data
-            img = cv2.imdecode(np.fromstring(base64.b64decode(msg.split(',')[1]), np.uint8), cv2.IMREAD_COLOR)
-            cv2.imshow('image', img)
-            cv2.waitKey(1)
-            
+    global cap
+    flag = 0
+    while (True):
+        ret, img = cap.read()
+        if not ret:
+            break
+        else:
+            detector = cv2.CascadeClassifier('C:/Users/MASTER/Desktop/haarcascade_frontalface_default.xml')
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            faces = detector.detectMultiScale(gray, 1.3, 5)
+            img = cv2.rectangle(img, (210,30), (410,210), blue_color, 2)
+        
+            for (x, y, w, h) in faces:
+                cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                if(x>=210 and x<=250 and y>=30 and y<=45):
+                    if(x+w>=370 and x+w<=410 and y+h>=180 and y+h<=195 ):
+                        flag = 1
+            if (flag ==1):
+                break
 
-        def connected(self):
-            print(self.address, 'connected')
+            ret, buffer = cv2.imencode('.jpg', img)
+            img = buffer.tobytes()
+            yield(b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + img+ b'\r\n')
+# 1. New detection variables
 
-        def handle_close(self):
-            print(self.address, 'closed')
+#사용자의 사용위치 찾기
 
-    # 웹소켓 서버를 생성합니다. localhost 부분은 ip주소(예를들면 192.168.0.1), 3000은 port 번호입니다.
-
-    server = WebSocketServer('localhost', 3000, SimpleEcho)
-    server.serve_forever()
 
     sequence = []
     sentence = []
     predictions = []
     threshold = 0.7
     count = 0
-    
+    cap = cv2.VideoCapture(0)
 # Set mediapipe model 
     with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
-        while True:
+        while cap.isOpened():
 
         # Read feed
+            ret, frame = cap.read()
             count = count+1
-            cv2.putText(img, 'Collecting frames for {}'.format(30-count), (30, 60),
+            cv2.putText(frame, 'Collecting frames for {}'.format(30-count), (30, 60),
                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1, cv2.LINE_AA)
         # Make detections
-            image, results = mediapipe_detection(img, holistic)
+            image, results = mediapipe_detection(frame, holistic)
             print(results)
         
         # Draw landmarks
@@ -169,7 +172,6 @@ def generate_frames():
             if count ==29:
                 count = 0
 
-
 #만일 static폴더를 지정하고 싶다면
 #app = Flask(__name, static_folder='./static/')
 
@@ -183,6 +185,3 @@ def video():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
-
