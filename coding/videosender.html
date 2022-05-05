@@ -1,0 +1,72 @@
+<!--videosender.html-->
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Hello</title>
+</head>
+<body>
+	<video id="videoInput" style="display:none"></video>
+    <!--<canvas> 태그는 주로 자바스크립트와 같은 스크립트를 이용하여 그래픽 콘텐츠를 그릴 때 사용-->
+  <canvas id="videoOutput"></canvas> 
+  <!--button을 click시에 stream() 함수가 실행 -->
+  <button onclick=stream()>Send</button>
+</body> 
+<!--자바스크립트와 같은 클라이언트 사이드 스크립트를 정의할 때 사용-->
+<script>
+// Web Socket 생성 및 설정 부
+  var w = 640, h = 480;
+	var url = "ws://localhost:3000"
+    // WebSocket 객체 ws 생성,  위의 ws는 http를 대체 하는 말 객체 ws랑 같은 거 아님 
+	var ws = new WebSocket(url);
+    // 연결을 맺는 것은 비동기 작업이고 실패하기 쉬운 작업이기 때문에,
+    // WebSocket 객체를 생성하자마자 send()로 데이터 전송을 시도하는 것은 성공하지 않을 가능성이있음
+    // 연결이 수립된 이후에만 데이터를 전송하도록 하기 위해 onopen 핸들러 정의
+
+	ws.onopen = function(){
+		console.log("Websocket is connected.");
+	}
+	ws.onmessage = function(msg){
+		console.log(msg.data);
+	}
+
+	navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+  // MediaStream의 내용물을 제어
+  var constraints = {audio: false, video: true};
+  var video = document.getElementById("videoInput"); // 인자의 id의 요소에 접근할 수 있음 즉 video 변수를 이용해 사용자 video 접근 및 설정가능 
+  video.width = w;
+  video.height = h;
+  // 미디어 접근 요청이 승인되면 호출되는 함수
+  function successCallback(stream){
+  	video.srcObject = stream;
+  	video.play();
+  }
+  //호출이 실패하면 에 지정된 함수 가 객체를 유일한 인수로 errorCallback사용하여 호출
+  function errorCallback(error){
+   	console.log(error);
+  }
+  navigator.getUserMedia(constraints, successCallback, errorCallback);
+	var canvas = document.getElementById("videoOutput");
+  canvas.width = w;
+  canvas.height = h;
+  //getContext("2d") 객체는 내장된 HTML5 객체로써, 경로, 상자, 원, 텍스트, 이미지 등을 그리기 위한 많은 속성과 방법을 가짐:
+  var ctx = canvas.getContext("2d");
+  function processImage(){
+        ctx.drawImage(video, 0, 0, w, h);
+        // 1 ms 마다 화면을 갱신
+        setTimeout(processImage, 1);
+  }
+  processImage();
+
+  function stream(){
+    //30밀리초의 실행 전 대기시간
+    setInterval(sendImage, 30);
+  }
+
+  // 서버로 데이터 전송
+  function sendImage(){
+    // 메서드는 매개변수 로 지정된 형식의 이미지 표현을 포함하는 데이터 URItype 를 반환합니다 . 0.5는 중간 화질?? 1.0이 full 퀄리티 화질인데 느림
+    var rawData = canvas.toDataURL("image/jpeg", 0.3);
+    ws.send(rawData);
+  }
+</script>
+</html>
