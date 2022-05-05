@@ -176,7 +176,7 @@ def generate_frames():
 
 @app.route('/')
 def index():
-    return render_template('videosender.html')
+    return render_template('index.html')
 
 @app.route('/video')
 def video():
