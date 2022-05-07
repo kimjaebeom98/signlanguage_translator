@@ -136,56 +136,16 @@ def image(data_image):
                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1, cv2.LINE_AA)
             # Make detections
             image, results = mediapipe_detection(frame, holistic)
-            print(results)
-        
-        # Draw landmarks
-            draw_styled_landmarks(image, results)
-        
-        # 2. Prediction logic
-            keypoints = extract_keypoints(results)
-            sequence.append(keypoints)
-            sequence = sequence[-30:]
-        
-            if (len(sequence) % 30 == 0):
-                res = model.predict(np.expand_dims(sequence, axis=0))[0]
-                print(actions[np.argmax(res)])
-                predictions.append(np.argmax(res))
-            
-            
-            
-                u = np.bincount(predictions[-10:])
-                b = u.argmax()
-                if b == np.argmax(res): 
-                    if res[np.argmax(res)] > threshold: 
-                    
-                        if len(sentence) > 0: 
-                            if actions[np.argmax(res)] == 'None':
-                                if count == 29:
-                                    sentence.append(actions[np.argmax(res)])
-                            else:
-                                if(actions[np.argmax(res)] != sentence[-1]):
-                                    if count ==29:
-                                        sentence.append(actions[np.argmax(res)])
-                        else:
-                            sentence.append(actions[np.argmax(res)])
+            imgencode = cv2.imencode('.jpeg', image,[cv2.IMWRITE_JPEG_QUALITY,40])[1]
 
-                if len(sentence) > 5: 
-                    sentence = sentence[-5:]
-                
-            cv2.rectangle(image, (0,0), (640, 20), (255, 255, 255), -1)
-            image_modi = Image.fromarray(image)
-            draw = ImageDraw.Draw(image_modi)
-            draw.text((0,0), ' '.join(sentence), font=font2, fill=(0,0,0))
-            image = np.array(image_modi)
-        # Show to screen
-            ret, buffer = cv2.imencode('.jpg', image)
-            img = buffer.tobytes()
-            yield(b'--frame\r\n'
-                    b'Content-Type: image/jpeg\r\n\r\n' + img+ b'\r\n')
-            if count ==29:
-                count = 0
+            # base64 encode
+            stringData = base64.b64encode(imgencode).decode('utf-8')
+            b64_src = 'data:image/jpeg;base64,'
+            stringData = b64_src + stringData
 
+            # emit the frame back
+            emit('response_back', stringData)
 
 
 if __name__ == '__main__':
-    socketio.run(app,port=3000 ,debug=True)
+    socketio.run(app ,debug=True)
