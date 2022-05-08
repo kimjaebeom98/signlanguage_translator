@@ -89,10 +89,10 @@ def readb64(base64_string):
     idx = base64_string.find('base64,')
     base64_string  = base64_string[idx+7:]
 
-    sbuf = io.BytesIO()
+    sbuf = io.BytesIO() #io.BytesIO() 객체 생성
 
     # Take in base64 string and return PIL image
-    sbuf.write(base64.b64decode(base64_string, ' /'))
+    sbuf.write(base64.b64decode(base64_string, ' /')) #io.BytesIO() 객체 내에 byte정보 저장
     pimg = Image.open(sbuf)
 
     # convert PIL Image to an RGB image( technically a numpy array ) that's compatible with opencv
@@ -122,7 +122,7 @@ def image(data_image):
     global fps,cnt, prev_recv_time,fps_array
     recv_time = time.time()
     text  =  'FPS: '+str(fps)
-    frame = (readb64(data_image))
+    frame = (readb64(data_image)) #img
 
     sequence = []
     sentence = []
@@ -138,7 +138,7 @@ def image(data_image):
             image, results = mediapipe_detection(frame, holistic)
             imgencode = cv2.imencode('.jpeg', image,[cv2.IMWRITE_JPEG_QUALITY,40])[1]
 
-            # base64 encode
+            # cv2 image를 string으로 convert
             stringData = base64.b64encode(imgencode).decode('utf-8')
             b64_src = 'data:image/jpeg;base64,'
             stringData = b64_src + stringData
