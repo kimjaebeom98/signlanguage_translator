@@ -80,8 +80,8 @@
 
 
         //같은 함수안에 있는걸로 보아 위에서 data를 서버로 보내고 서버로부터 답장을 response_back을 통해 받을 수 있음 data를 처리한 이미지를 받는듯
-        socket.on('response_back', function(image){
-                photo.setAttribute('src', image );
+        socket.on('response_back', function(result_sentence){
+            document.write( '<p>c : ' + result_sentence + '</p>' );
                 
         });
 

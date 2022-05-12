@@ -170,7 +170,7 @@ def image(data_image):
         result_sentence = "제 일행이 먼저 도착 해 있어요."
 
         # emit the frame back
-        emit('response_back', result_sentence)
+        socketio.emit('response_back', {comment:"안녕하세요"})
         if count ==29:
                 count = 0
 
