@@ -1,9 +1,6 @@
 from flask import Flask, render_template, Response
 from flask_socketio import SocketIO, emit
-from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestClassifier
-import time, io, os, time, sys, natsort, random, math, joblib
-import pandas as pd
+import time, io, os, time, sys, natsort, random, math
 from PIL import Image
 import base64,cv2
 import numpy as np
@@ -96,30 +93,6 @@ def readb64(base64_string):
 def moving_average(x):
     return np.mean(x)
 
-my_dict ={"None":0, "나":1, "달다":2, "도착":3, "돈":4, "맵다" :5, "먼저": 6,
-         "무엇":7, "물음":8, "부탁":9, "사람":10, "시간":11, "얼마":12, "우리":13, 
-          "음식":14, "이거":15, "인기":16, "있다":17, "자리":18, "주문":19, "주세요":20, 
-          "짜다":21, "책":22, "추천":23, "확인":24, "제일":25}
-
-def make_word_df(word0, word1, word2, word3, word4):
-    info = [[word0, word1, word2, word3, word4]]
-    df = pd.DataFrame(info, columns = ['target0', 'target1', 'target2', 'target3', 'target4'])
-    return df
-
-def get_key(val):
-    for key, value in my_dict.items():
-         if val == key:
-             return value
- 
-    return "There is no such Key"
-
-def make_num_df(input_1):
-    num_oflist = []
-    for i in input_1.columns:
-        num_oflist.append(get_key(input_1[i].values))
-    input2 = make_word_df(num_oflist[0], num_oflist[1], num_oflist[2], num_oflist[3], num_oflist[4])
-    return input2
-
 # 서버가 클라이언트가 보낸 메시지를 받는 방법, 클라이언트의 메시지를 확인하는 방법
 # catch-frame 이벤트 핸들러 정의
 # catch-frame 를 트리거 할 때 response_back 이벤트로 전송함 2번째 인자 data와 같이
@@ -127,21 +100,17 @@ def make_num_df(input_1):
 def catch_frame(data):
     emit('response_back', data)  
 
-global count, sequence, sentence, predictions
+global count, sequence, sentece, predictions
 sequence = []
 sentence = []
 predictions = []
 count = 0
-rlf = RandomForestClassifier()
-rlf = joblib.load("문장생성 모델") ##모델을 만들면 추가 할것임
-le = LabelEncoder()
-
 # image 이벤트 핸들러 정의 클라이언트에서 image 이벤트 핸들러로 image data를 보냈으니 받는 것
 @socketio.on('image')
 def image(data_image):
     frame = (readb64(data_image))
+    global sequence, sentence, predictions, count
     threshold = 0.7
-    global count, sequence, sentence, predictions
     with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
         count = count+1
         # Make detections
@@ -173,47 +142,25 @@ def image(data_image):
 
                 if len(sentence) > 5: 
                     sentence = sentence[-5:]
-
-        ##문장 생성 모델을 load
         if count == 29:
             count = 0
-            if(len(sentence) != 0) :
-                if(len(sentence) == 5):
-                    input = make_word_df(sentence[0], sentence[1], sentence[2], sentence[3], sentence[4])
-                    word_input = make_num_df(input)
-                    y_prd = rlf.predict(word_input)
-                    predict_sentence = np.array2string(le.inverse_transform(y_prd))
-                    ##outputSentence에는 문장이 들어있다. 이를 이제 이미지화해서 문장을 출력하자
-                    img = np.full((200, 300, 3), (255, 255, 255), np.unit8)
-                    img = Image.fromarray(img)
-                
-                    draw = ImageDraw.Draw(img)
-                    draw.text((60, 80), predict_sentence, font = font2, fill=(0,0,0))
-                    image_send = np.array(img)
-                    imgencode = cv2.imencode('.jpeg', image_send,[cv2.IMWRITE_JPEG_QUALITY,40])[1]
+            if(len(sentence) != 0):
+                predict_word = sentence[-1]
+                ## 이 밑으로는 문자열을 이미지로 만드는 부분임, 따라서 문자열을 보내고 싶으면 밑에 코드 부분을 수장해야함
+                img = np.full((200, 300, 3), (255, 255, 255), np.uint8)
+                img = Image.fromarray(img)
+                    
+                draw = ImageDraw.Draw(img)
+                draw.text((60, 80), predict_word, font = font2, fill=(0,0,0))
+                image_send = np.array(img)
+                imgencode = cv2.imencode('.jpeg', image_send,[cv2.IMWRITE_JPEG_QUALITY,40])[1]
 
-                    stringData = base64.b64encode(imgencode).decode('utf-8')
-                    b64_src = 'data:image/jpeg;base64,'
-                    stringData = b64_src + stringData
+                stringData = base64.b64encode(imgencode).decode('utf-8')
+                b64_src = 'data:image/jpeg;base64,'
+                stringData = b64_src + stringData
 
-                    # emit the frame back
-                    emit('response_back', img)
-                else:
-                    predict_word = sentence[-1]
-                    img = np.full((200, 300, 3), (255, 255, 255), np.uint8)
-                    img = Image.fromarray(img)
-                        
-                    draw = ImageDraw.Draw(img)
-                    draw.text((60, 80), predict_word, font = font2, fill=(0,0,0))
-                    image_send = np.array(img)
-                    imgencode = cv2.imencode('.jpeg', image_send,[cv2.IMWRITE_JPEG_QUALITY,40])[1]
-
-                    stringData = base64.b64encode(imgencode).decode('utf-8')
-                    b64_src = 'data:image/jpeg;base64,'
-                    stringData = b64_src + stringData
-
-                    # emit the frame back
-                    emit('response_back', stringData)
+                # emit the frame back
+                emit('response_back', stringData)
 
 
 if __name__ == '__main__':
