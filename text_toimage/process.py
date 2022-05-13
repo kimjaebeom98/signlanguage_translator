@@ -146,21 +146,9 @@ def image(data_image):
             count = 0
             if(len(sentence) != 0):
                 predict_word = sentence[-1]
-                ## 이 밑으로는 문자열을 이미지로 만드는 부분임, 따라서 문자열을 보내고 싶으면 밑에 코드 부분을 수장해야함
-                img = np.full((200, 300, 3), (255, 255, 255), np.uint8)
-                img = Image.fromarray(img)
-                    
-                draw = ImageDraw.Draw(img)
-                draw.text((60, 80), predict_word, font = font2, fill=(0,0,0))
-                image_send = np.array(img)
-                imgencode = cv2.imencode('.jpeg', image_send,[cv2.IMWRITE_JPEG_QUALITY,40])[1]
-
-                stringData = base64.b64encode(imgencode).decode('utf-8')
-                b64_src = 'data:image/jpeg;base64,'
-                stringData = b64_src + stringData
 
                 # emit the frame back
-                emit('response_back', stringData)
+                emit('response_back', predict_word)
 
 
 if __name__ == '__main__':

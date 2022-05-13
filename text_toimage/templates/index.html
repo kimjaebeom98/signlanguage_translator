@@ -2,78 +2,159 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
-
+    <title>Document</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.0/socket.io.js'></script>
     <style>
-    	#video {
-    		transform: rotateY(180deg);
-    		-webkit-transform:rotateY(180deg); /* Safari and Chrome */
-    		-moz-transform:rotateY(180deg); /* Firefox */
-    		
-    	}
-    </style>
-    
-     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-     <script src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.0/socket.io.js'></script>
+        #video {
+            transform: rotateY(180deg);
+            -webkit-transform:rotateY(180deg); /* Safari and Chrome */
+            -moz-transform:rotateY(180deg); /* Firefox */
+            
+        }
+
+        .ex-layout {
+            float:left;
+            width: 640px;
+        }
+        .ex-layout .gnb{
+            padding: 15px;
+            background-color: skyblue;
+            font-weight: bold;
+        }
+        .ex-layout .main{
+            background-color: white;
+        }
+        .ex-layout .main:after{ clear: both; display: block; content: '' }
+
+        .ex-layout .main #container{
+            width : 640px;
+            height : 480px;
+
+        }
+
+        .ex-layout .footer{
+            width : 610px;
+            height: 100px;
+            padding: 15px;
+            background-color: #ddd;
+        }
+
+        .ex-layout .item.last {
+            float: right;
+            border-right: none;
+        }
+
+        a.button {
+            color: rgba(30, 22, 54, 0.6);
+            box-shadow: rgba(30, 22, 54, 0.4) 0 0px 0px 2px inset;
+        }
+
+        a.button:hover {
+            color: rgba(255, 255, 255, 0.85);
+            box-shadow: rgba(30, 22, 54, 0.7) 0 0px 0px 40px inset;
+        }
+
+        a.button2 {
+            color: rgba(30, 22, 54, 0.6);
+            box-shadow: rgba(30, 22, 54, 0.4) 0 0px 0px 2px inset;
+        }
+
+        a.button2:hover {
+            color: rgba(255, 255, 255, 0.85);
+            box-shadow: rgba(30, 22, 54, 0.7) 0 0px 0px 40px inset;
+        }
+
+
+        a {
+            -webkit-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+            -moz-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+            -ms-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+            -o-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+            transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+            text-decoration: none;
+            padding: 5px 20px;
+            margin-bottom: 0px;
+        }
+    </style> 
+
 </head>
-
 <body>
-
-    <div id="container">
-    <video autoplay playsinline id="videoElement"></video>
-    <canvas id="canvas"  width="640" height="480"></canvas>
+    <div class="ex-layout">
+        <div class="gnb">수어 번역기
+            <div class="item last">
+                <a href="#" onclick = start() class="button">시작하기</a>
+                <a href="#"  class="button2">번역하기</a>
+            </div>
+        </div>
+        <div class="main">
+            <div id="container">
+                <video autoplay playsinline id="videoElement"></video>
+                <canvas id="canvas"  width="640" height="480"></canvas>
+            </div>
+        </div>
+        <div class="footer">
+            <textarea id = "result" rows="6" cols="82" ></textarea>
+        </div>
     </div>
-
-    <div class = 'video'>
-        <img id="photo"  width="640"  height="480">
-        <h1>video</h1>
-    </div>
-
     <script type="text/javascript" charset="utf-8">
-      
+        
+        
         var socket = io.connect(window.location.protocol + '//' + document.domain + ':' + location.port);
         socket.on('connect', function(){
             console.log("Connected...!", socket.connected)
         });
-
-
-        var canvas = document.getElementById('canvas');
-        var context = canvas.getContext('2d');
+        
+        var canvas = document.getElementById('canvas'); // 인자의 id의 요소에 접근할 수 있음 즉 video 변수를 이용해 사용자 video 접근 및 설정가능 
+        var context = canvas.getContext('2d'); //getContext("2d") 객체는 내장된 HTML5 객체로써, 경로, 상자, 원, 텍스트, 이미지 등을 그리기 위한 많은 속성과 방법을 가짐
         const video = document.querySelector("#videoElement");
 
         video.width = 640;
         video.height = 480; 
-    
 
-        if (navigator.mediaDevices.getUserMedia) {
+
+
+        function start(){
+            if (navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: true })
             .then(function (stream) {
                 video.srcObject = stream;
                 video.play();
+                start_message();
             })
             .catch(function (err0r) {
 
             });
+            }
         }
 
+
         const FPS = 6;
-        setInterval(() => {
-            width=video.width;
-            height=video.height;
-            context.drawImage(video, 0, 0, width , height );
-            var data = canvas.toDataURL('image/jpeg', 1.0);
-            context.clearRect(0, 0, width,height );
-            socket.emit('image', data);
-        }, 1000/FPS);
+        
+        
+        var rs = document.querySelector(".button2");
+        rs.onclick = function translate(){
+            setInterval(() => {
+                width=video.width;
+                height=video.height;
+                context.drawImage(video, 0, 0, width , height );
+                var data = canvas.toDataURL('image/jpeg', 0.5);
+                context.clearRect(0, 0, width,height );
+                socket.emit('image', data); //image 이벤트가 발생하면 data를 서버에 송신 data를 받기 위해 서버에서는 image 이벤트리스트를 만들놔야함
+            }, 1000/FPS);
 
-        socket.on('response_back', function(image){
-                photo.setAttribute('src', image );
-                
-        });
+            //같은 함수안에 있는걸로 보아 위에서 data를 서버로 보내고 서버로부터 답장을 response_back을 통해 받을 수 있음 data를 처리한 이미지를 받는듯
 
+        }
+        socket.on('response_back', function(data){
+                var infoEl= document.getElementById('result'); 
+                infoEl.value =  data
+            });
+        
+       
+
+       
+        
     </script>
-
-
- </body>
-
+</body>
 </html>
