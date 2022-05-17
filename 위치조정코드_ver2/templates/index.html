@@ -261,26 +261,35 @@
             }, 1000/30)
             })
         }
-        
+        function send30frames(){
+            count++;
+            width=video.width;
+            height=video.height;
+            context.drawImage(video, 0, 0, width , height );
+
+
+            var data = canvas.toDataURL('image/jpeg', 0.5);
+            context.clearRect(0, 0, width, height);
+            socket.emit('image', data);
+        }
         
         // 번역 시작 
+        
         var rs = document.querySelector(".button2");
         rs.onclick = function translate(){
-            setInterval(() => {
-                width=video.width;
-                height=video.height;
-                context.drawImage(video, 0, 0, width , height );
-                var data = canvas.toDataURL('image/jpeg', 0.5);
-                context.clearRect(0, 0, width,height );
-                socket.emit('image', data); //image 이벤트가 발생하면 data를 서버에 송신 data를 받기 위해 서버에서는 image 이벤트리스트를 만들놔야함
-            }, 1000/FPS);
-
-            //같은 함수안에 있는걸로 보아 위에서 data를 서버로 보내고 서버로부터 답장을 response_back을 통해 받을 수 있음 data를 처리한 이미지를 받는듯
+            count = 0;
+            interval = setInterval(send30frames, 1000/FPS);
+            console.log(count);
+            if(count == 30)
+            {
+                count = 0;
+                clearInterval(interval);
+            }
 
         }
         socket.on('response_back', function(data){
                 var infoEl= document.getElementById('result'); 
-                infoEl.value =  data
+                infoEl.value =  data;
             });
     </script>
 </body>

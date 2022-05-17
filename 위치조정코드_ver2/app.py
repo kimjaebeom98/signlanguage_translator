@@ -14,6 +14,7 @@ from PIL import Image, ImageDraw, ImageFont
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 from tensorflow.keras.callbacks import TensorBoard
+import tensorflow as tf
 
 app = Flask(__name__)
 # SocketIO는 ‘app’에 적용되고 있으며 나중에 애플리케이션을 실행할 때 앱 대신 socketio를 사용할 수 있도록 socketio 변수에 저장된다.
@@ -64,7 +65,7 @@ model.add(Dense(32, activation='relu'))
 model.add(Dense(actions.shape[0], activation='softmax'))
 
 model.compile(optimizer='Adam', loss ='categorical_crossentropy', metrics=['categorical_accuracy'])
-model.load_weights("C:/Users/woqja/Downloads/actionxhand_data25X90_0307_1423.h5")
+model.load_weights("C:/Users/MASTER/Desktop/actionxhand_data25X90_0307_1423.h5")
 
 font = ImageFont.truetype("fonts/HMFMMUEX.TTC", 10)
 font2 = ImageFont.truetype("fonts/HMFMMUEX.TTC", 20)
@@ -108,47 +109,48 @@ count = 0
 # image 이벤트 핸들러 정의 클라이언트에서 image 이벤트 핸들러로 image data를 보냈으니 받는 것
 @socketio.on('image')
 def image(data_image):
-    frame = (readb64(data_image))
-    global sequence, sentence, predictions, count
-    threshold = 0.7
-    with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
-        count = count+1
-        # Make detections
-        image, results = mediapipe_detection(frame, holistic)
-        draw_styled_landmarks(image, results)
-        keypoints = extract_keypoints(results)
-        sequence.append(keypoints)
-        sequence = sequence[-30:]
-        if (len(sequence) % 30 == 0):
-                res = model.predict(np.expand_dims(sequence, axis=0))[0]
-                print(actions[np.argmax(res)])
-                predictions.append(np.argmax(res))
-                
-                u = np.bincount(predictions[-10:])
-                b = u.argmax()
-                if b == np.argmax(res): 
-                    if res[np.argmax(res)] > threshold: 
+    with tf.device('/cpu:0'):
+        frame = (readb64(data_image))
+        global sequence, sentence, predictions, count
+        threshold = 0.7
+        with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
+            count = count+1
+            # Make detections
+            image, results = mediapipe_detection(frame, holistic)
+            draw_styled_landmarks(image, results)
+            keypoints = extract_keypoints(results)
+            sequence.append(keypoints)
+            sequence = sequence[-30:]
+            if (len(sequence) % 30 == 0):
+                    res = model.predict(np.expand_dims(sequence, axis=0))[0]
+                    print(actions[np.argmax(res)])
+                    predictions.append(np.argmax(res))
                     
-                        if len(sentence) > 0: 
-                            if actions[np.argmax(res)] == 'None':
-                                if count == 29:
-                                    sentence.append(actions[np.argmax(res)])
-                            else:
-                                if(actions[np.argmax(res)] != sentence[-1]):
-                                    if count ==29:
+                    u = np.bincount(predictions[-10:])
+                    b = u.argmax()
+                    if b == np.argmax(res): 
+                        if res[np.argmax(res)] > threshold: 
+                        
+                            if len(sentence) > 0: 
+                                if actions[np.argmax(res)] == 'None':
+                                    if count == 29:
                                         sentence.append(actions[np.argmax(res)])
-                        else:
-                            sentence.append(actions[np.argmax(res)])
+                                else:
+                                    if(actions[np.argmax(res)] != sentence[-1]):
+                                        if count ==29:
+                                            sentence.append(actions[np.argmax(res)])
+                            else:
+                                sentence.append(actions[np.argmax(res)])
 
-                if len(sentence) > 5: 
-                    sentence = sentence[-5:]
-        if count == 29:
-            count = 0
-            if(len(sentence) != 0):
-                predict_word = sentence[-1]
+                    if len(sentence) > 5: 
+                        sentence = sentence[-5:]
+            if count == 29:
+                count = 0
+                if(len(sentence) != 0):
+                    predict_word = sentence[-1]
 
-                # emit the frame back
-                emit('response_back', predict_word)
+                    # emit the frame back
+                    emit('response_back', predict_word)
 
 
 if __name__ == '__main__':
