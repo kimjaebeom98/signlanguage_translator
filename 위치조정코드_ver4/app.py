@@ -31,18 +31,6 @@ def mediapipe_detection(image, model):
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     return image, results
 
-def draw_landmarks(image, results):
-    mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
-    mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
-
-def draw_styled_landmarks(image, results):
-    mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
-                             mp_drawing.DrawingSpec(color = (121, 22, 76), thickness = 2, circle_radius = 4), # dot color
-                             mp_drawing.DrawingSpec(color = (121, 44, 250), thickness = 2, circle_radius = 2))
-    mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
-                             mp_drawing.DrawingSpec(color = (245, 117, 66), thickness = 2, circle_radius = 4), # dot color
-                             mp_drawing.DrawingSpec(color = (245, 66, 230), thickness = 2, circle_radius = 2))
-
 def extract_keypoints(results):
     lh = np.array([[res.x*3, res.y*3, res.z*3] for res in results.left_hand_landmarks.landmark]).flatten() if results.left_hand_landmarks else np.zeros(21*3)
     rh = np.array([[res.x*3, res.y*3, res.z*3] for res in results.right_hand_landmarks.landmark]).flatten() if results.right_hand_landmarks else np.zeros(21*3)    
@@ -69,8 +57,6 @@ model.load_weights("C:/Users/MASTER/actionxhand_data25X90_0307_1423.h5")
 font = ImageFont.truetype("fonts/HMFMMUEX.TTC", 10)
 font2 = ImageFont.truetype("fonts/HMFMMUEX.TTC", 20)
 blue_color = (255,0,0)
-
-
 
 @app.route('/', methods=['POST', 'GET'])
 def index():
@@ -115,38 +101,34 @@ def image(data_image):
         count = count+1
         # Make detections
         image, results = mediapipe_detection(frame, holistic)
-        draw_styled_landmarks(image, results)
         keypoints = extract_keypoints(results)
         sequence.append(keypoints)
         sequence = sequence[-30:]
-        if (len(sequence) % 30 == 0):
-                res = model.predict(np.expand_dims(sequence, axis=0))[0]
-                print(actions[np.argmax(res)])
-                predictions.append(np.argmax(res))
+        if (count == 29):
+            res = model.predict(np.expand_dims(sequence, axis=0))[0]
+            print(actions[np.argmax(res)])
+            predictions.append(np.argmax(res))
                 
-                u = np.bincount(predictions[-10:])
-                b = u.argmax()
-                if b == np.argmax(res): 
-                    if res[np.argmax(res)] > threshold: 
+            u = np.bincount(predictions[-10:])
+            b = u.argmax()
+            if b == np.argmax(res): 
+                if res[np.argmax(res)] > threshold: 
                     
-                        if len(sentence) > 0: 
-                            if actions[np.argmax(res)] == 'None':
-                                if count == 29:
-                                    sentence.append(actions[np.argmax(res)])
-                            else:
-                                if(actions[np.argmax(res)] != sentence[-1]):
-                                    if count ==29:
-                                        sentence.append(actions[np.argmax(res)])
+                    if len(sentence) > 0: 
+                        if actions[np.argmax(res)] == 'None':
+                                sentence.append(actions[np.argmax(res)])
                         else:
-                            sentence.append(actions[np.argmax(res)])
-
-                if len(sentence) > 5: 
-                    sentence = sentence[-5:]
-        if count == 29:
+                            if(actions[np.argmax(res)] != sentence[-1]):
+                                    sentence.append(actions[np.argmax(res)])
+                    else:
+                        sentence.append(actions[np.argmax(res)])
+                else:
+                    emit('response_back', "인식에 실패하였습니다. 다시 동작해주세요")
+            if len(sentence) > 5: 
+                sentence = sentence[-5:]
             count = 0
             if(len(sentence) != 0):
                 predict_word = sentence[-1]
-
                 # emit the frame back
                 emit('response_back', predict_word)
 
