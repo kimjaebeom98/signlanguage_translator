@@ -156,14 +156,19 @@
                 var data = canvas.toDataURL('image/jpeg', 0.5);
                 context.clearRect(0, 0, width,height );
                 socket.emit('image', data); //image 이벤트가 발생하면 data를 서버에 송신 data를 받기 위해 서버에서는 image 이벤트리스트를 만들놔야함
+<<<<<<< HEAD:위치조정코드_ver재범/templates/index.html
                 console.log(count);
                 count ++;
+=======
+                count ++;
+                console.log(count); 
+>>>>>>> 4f391d1220a59a40c11931842cab92c08140601a:위치조정코드_ver4/templates/index.html
             }
         }
         // 번역 시작 
         function translate(){
             count = 0;
-            itt = setInterval(send30, 1000/FPS);
+            itt = setInterval(send30, 100);
             return;
         }
         socket.on('response_back', function(data){
