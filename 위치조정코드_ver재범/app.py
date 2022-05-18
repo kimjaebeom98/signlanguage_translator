@@ -64,7 +64,7 @@ model.add(Dense(32, activation='relu'))
 model.add(Dense(actions.shape[0], activation='softmax'))
 
 model.compile(optimizer='Adam', loss ='categorical_crossentropy', metrics=['categorical_accuracy'])
-model.load_weights("C:/Users/MASTER/actionxhand_data25X90_0307_1423.h5")
+model.load_weights("C:/Users/woqja/Downloads/actionxhand_data25X90_0307_1423.h5")
 
 font = ImageFont.truetype("fonts/HMFMMUEX.TTC", 10)
 font2 = ImageFont.truetype("fonts/HMFMMUEX.TTC", 20)
@@ -100,15 +100,18 @@ def moving_average(x):
 def catch_frame(data):
     emit('response_back', data)  
 
-global count, sequence, sentece, predictions
+global count, sequence, sentece, predictions, frame_buffer
 sequence = []
 sentence = []
 predictions = []
+frame_buffer = []
 count = 0
 # image 이벤트 핸들러 정의 클라이언트에서 image 이벤트 핸들러로 image data를 보냈으니 받는 것
 @socketio.on('image')
 def image(data_image):
     frame = (readb64(data_image))
+    frame_buffer.append(frame)
+    print(len(frame_buffer))
     global sequence, sentence, predictions, count
     threshold = 0.7
     with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
@@ -148,7 +151,7 @@ def image(data_image):
                 predict_word = sentence[-1]
 
                 # emit the frame back
-                emit('response_back', predict_word)
+                emit('response_back', 'test')
 
 
 if __name__ == '__main__':
