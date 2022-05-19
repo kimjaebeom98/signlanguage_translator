@@ -64,7 +64,7 @@ model.add(Dense(32, activation='relu'))
 model.add(Dense(actions.shape[0], activation='softmax'))
 
 model.compile(optimizer='Adam', loss ='categorical_crossentropy', metrics=['categorical_accuracy'])
-model.load_weights("C:/Users/woqja/Downloads/actionxhand_data25X90_0307_1423.h5")
+model.load_weights("C:/Users/MASTER/actionxhand_data25X90_0307_1423.h5")
 
 font = ImageFont.truetype("fonts/HMFMMUEX.TTC", 10)
 font2 = ImageFont.truetype("fonts/HMFMMUEX.TTC", 20)
@@ -147,11 +147,13 @@ def image(data_image):
                     sentence = sentence[-5:]
         if count == 29:
             count = 0
+            emit('response_back', 'test')
             if(len(sentence) != 0):
                 predict_word = sentence[-1]
+               
 
                 # emit the frame back
-                emit('response_back', 'test')
+            
 
 
 if __name__ == '__main__':

@@ -75,19 +75,6 @@
             box-shadow: rgba(30, 22, 54, 0.7) 0 0px 0px 40px inset;
         }
 
-
-        a {
-            -webkit-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
-            -moz-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
-            -ms-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
-            -o-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
-            transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
-            text-decoration: none;
-            padding: 5px 20px;
-            margin-bottom: 0px;
-        }
-
-
         .outline {
             position : absolute;
             left: 240px; top: 30px; 
@@ -105,6 +92,18 @@
             border : 2px dashed white;
 
         }
+        a {
+            -webkit-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+            -moz-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+            -ms-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+            -o-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+            transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+            text-decoration: none;
+            padding: 5px 20px;
+            margin-bottom: 0px;
+        }
+
+
         canvas {
             position: absolute;
             }
@@ -125,6 +124,18 @@
             height: 95px;
             border: solid 2px white;
         }
+        .jb-text{
+            position: absoulte;
+            left : 20%;
+            top : 35%;
+            width : 640;
+        }
+        .jb-text p{
+            margin-top:-24px;
+            text-align:center;
+            font-size:30px;
+            color: #ffffff;
+        }
     </style>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.0/socket.io.js'></script>
@@ -144,6 +155,7 @@
                 <canvas id="canvas"  width="640" height="480"></canvas>
                 <div class = "outline" id="boxes"></div>
                 <div class = "inner" id="boxes"></div>
+                <div class = "jb-text"></div>
             </div>
         </div>
         <div class="footer">
@@ -162,13 +174,9 @@
         var context = canvas.getContext('2d'); //getContext("2d") 객체는 내장된 HTML5 객체로써, 경로, 상자, 원, 텍스트, 이미지 등을 그리기 위한 많은 속성과 방법을 가짐
         const video = document.querySelector("#videoElement");
         
-        
-        
-    
-    
-
         video.width = 640;
-        video.height = 480; 
+        video.height = 480;
+        str = '';
 
 
         function start(){
@@ -237,7 +245,6 @@
             displaySize = { width: video.width, height: video.height }
             faceapi.matchDimensions(cs, displaySize)
             // 100ms 마다 화면에 video frame이 표시 됨
-            
             interval = setInterval(it, 1000/30);
             })
             return;
@@ -269,7 +276,7 @@
 
         function send30(){
             if (count == 30){
-                clearInterval(itt);
+                count = 0;
                 return;
             }
             else{
@@ -285,12 +292,14 @@
         }
         // 번역 시작 
         function translate(){
+            jb = document.getElementsByClassName('jb-text');
+            jb.innerHTML = "<p> 다음 단어를 입력해주세요.</p>"
             count = 0;
-            itt = setInterval(send30, 1000/FPS);
+            itt = setInterval(send30, 1000);
             return;
         }
         socket.on('response_back', function(data){
-                str += data; 
+                str += data;
                 var infoEl= document.getElementById('result'); 
                 infoEl.value =  str;
             });

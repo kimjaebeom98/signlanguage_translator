@@ -20,6 +20,7 @@
             <div id="container">
                 <video autoplay playsinline id="videoElement"></video>
                 <canvas id="canvas"  width="640" height="480"></canvas>
+                <div id = "jb-text"></div>
                 <div class = "outline" id="boxes"></div>
                 <div class = "inner" id="boxes"></div>
             </div>
@@ -39,12 +40,14 @@
         var canvas = document.getElementById('canvas'); // 인자의 id의 요소에 접근할 수 있음 즉 video 변수를 이용해 사용자 video 접근 및 설정가능 
         var context = canvas.getContext('2d'); //getContext("2d") 객체는 내장된 HTML5 객체로써, 경로, 상자, 원, 텍스트, 이미지 등을 그리기 위한 많은 속성과 방법을 가짐
         const video = document.querySelector("#videoElement");
-        
-        
+        const FPS = 30;
+        flag = 0;
+        str = '';
+        jb = document.getElementById('jb-text');
+        // 사용자 위치 조정
+        var rs2 = document.querySelector(".button3");
         
     
-    
-
         video.width = 640;
         video.height = 480; 
 
@@ -66,7 +69,6 @@
         function start_message(){
             var st_message = document.getElementById('result');
             st_message.innerHTML=" 번역을 시작합니다. ";
-
         }
         // 위치조정 메시지
         function move_position_message(){
@@ -77,16 +79,10 @@
             var boxes = document.querySelectorAll('#boxes');
             boxes[0].setAttribute('style', 'border-color : red;');
             boxes[1].setAttribute('style', 'border-color : red;');
-            clearInterval(interval)
-            translate()
+            clearInterval(interval);
+            translate();
         }
         
-        
-        const FPS = 30;
-        
-        
-        // 사용자 위치 조정
-        var rs2 = document.querySelector(".button3");
         rs2.onclick = function rect_print(){
             Promise.all([
             faceapi.nets.tinyFaceDetector.loadFromUri('static/models'),
@@ -107,29 +103,33 @@
                     console.log(err);
                     });
                 }
-
+                
+            
+            
             video.addEventListener('play', () => {
             // canvas를 초기화 함
             cs = faceapi.createCanvasFromMedia(video)
             displaySize = { width: video.width, height: video.height }
             faceapi.matchDimensions(cs, displaySize)
             // 100ms 마다 화면에 video frame이 표시 됨
-            
             interval = setInterval(it, 1000/30);
+            
             })
-            return;
         }
+        
         
         async function it(){
             // video에서 얼굴을 식별
-            const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors()
-                const resizedDetections = faceapi.resizeResults(detections, displaySize)
+            const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+                const resizedDetections = faceapi.resizeResults(detections, displaySize);
                 cs.getContext('2d').clearRect(0, 0, cs.width, cs.height)
+    
+                
                 // video에서 얼굴 좌표에 box를 그림
                 resizedDetections.forEach(detection => {
                 const box = detection.detection.box
-                const drawBox = new faceapi.draw.DrawBox(box, {label: 'Face'})
-                drawBox.draw(cs)
+                const drawBox = new faceapi.draw.DrawBox(box, {label: 'Face'});
+                drawBox.draw(cs);
                 // box의 좌표 값과 너비, 길이를 콘솔창에 출력
                 // console.log(box.x, box.y, box.width, box.height)
                 console.log(box.x, box.y);
@@ -145,9 +145,12 @@
         }
 
         function send30(){
-            if (count == 30){
-                clearInterval(itt);
-                return;
+            if (count ==  30 && flag == 0){
+                flag = 1;
+                next_step();
+            }
+            else if (flag == 1 && count != 30){
+                return ;
             }
             else{
                 width=video.width;
@@ -156,25 +159,29 @@
                 var data = canvas.toDataURL('image/jpeg', 0.5);
                 context.clearRect(0, 0, width,height );
                 socket.emit('image', data); //image 이벤트가 발생하면 data를 서버에 송신 data를 받기 위해 서버에서는 image 이벤트리스트를 만들놔야함
-<<<<<<< HEAD:위치조정코드_ver재범/templates/index.html
                 console.log(count);
-                count ++;
-=======
-                count ++;
-                console.log(count); 
->>>>>>> 4f391d1220a59a40c11931842cab92c08140601a:위치조정코드_ver4/templates/index.html
+                count++;
             }
+        }
+        function next_step(){
+            socket.on('response_back', function(data){
+                jb.innerHTML = "<p style = 'margin-top : -100px; text-align:center;font-size:30px;color:#ffffff'> 다음 단어를 입력해주세요.</p>"
+                str += data
+                str += ' ' ;
+                var infoEl= document.getElementById('result'); 
+                infoEl.value = str;
+                flag = 0;
+                translate();
+            });
         }
         // 번역 시작 
         function translate(){
-            count = 0;
-            itt = setInterval(send30, 100);
-            return;
+            count = 1;
+            itt = setTimeout(function run(){
+                send30();
+                setTimeout(run, 100)
+            }, 100);
         }
-        socket.on('response_back', function(data){
-                var infoEl= document.getElementById('result'); 
-                infoEl.value =  data;
-            });
     </script>
 </body>
 </html>

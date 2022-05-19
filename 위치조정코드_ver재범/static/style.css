@@ -119,3 +119,16 @@ textarea{
 	height: 95px;
 	border: solid 2px white;
 }
+
+#jb-text{
+	position: absolute;
+	left : 20%;
+	top : 35%;
+	width : 640;
+}
+#jb-text p{
+	margin-top:-24px;
+	text-align:center;
+	font-size:30px;
+	color: #ffffff;
+}
