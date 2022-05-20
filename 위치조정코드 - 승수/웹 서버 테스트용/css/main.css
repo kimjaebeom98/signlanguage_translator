@@ -1,0 +1,59 @@
+#video {
+    transform: rotateY(180deg);
+    -webkit-transform:rotateY(180deg); /* Safari and Chrome */
+    -moz-transform:rotateY(180deg); /* Firefox */
+    
+}
+
+.ex-layout {
+	float:left;
+    width: 640px;
+}
+.ex-layout .gnb{
+	padding: 15px;
+	background-color: skyblue;
+    font-weight: bold;
+}
+.ex-layout .main{
+	background-color: white;
+}
+.ex-layout .main:after{ clear: both; display: block; content: '' }
+
+.ex-layout .main #container{
+    width : 640px;
+    height : 480px;
+
+}
+
+.ex-layout .footer{
+    width : 610px;
+    height: 100px;
+	padding: 15px;
+	background-color: #ddd;
+}
+
+.ex-layout .item.last {
+	float: right;
+	border-right: none;
+}
+
+a.button {
+	color: rgba(30, 22, 54, 0.6);
+	box-shadow: rgba(30, 22, 54, 0.4) 0 0px 0px 2px inset;
+}
+
+a.button:hover {
+	color: rgba(255, 255, 255, 0.85);
+	box-shadow: rgba(30, 22, 54, 0.7) 0 0px 0px 40px inset;
+}
+
+a {
+	-webkit-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+	-moz-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+	-ms-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+	-o-transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+	transition: all 200ms cubic-bezier(0.390, 0.500, 0.150, 1.360);
+	text-decoration: none;
+	padding: 5px 20px;
+    margin-bottom: 0px;
+}

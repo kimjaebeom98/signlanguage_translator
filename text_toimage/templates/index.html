@@ -105,13 +105,18 @@
             console.log("Connected...!", socket.connected)
         });
         
+        var count = 0;
         var canvas = document.getElementById('canvas'); // 인자의 id의 요소에 접근할 수 있음 즉 video 변수를 이용해 사용자 video 접근 및 설정가능 
         var context = canvas.getContext('2d'); //getContext("2d") 객체는 내장된 HTML5 객체로써, 경로, 상자, 원, 텍스트, 이미지 등을 그리기 위한 많은 속성과 방법을 가짐
         const video = document.querySelector("#videoElement");
 
         video.width = 640;
         video.height = 480; 
-
+        context.fillStyle = "white"
+        context.textBaseline = 'middle';
+        context.font = "10px 'Montserrat";
+        var width=video.width;
+        var height=video.height;
 
 
         function start(){
@@ -129,15 +134,15 @@
         }
 
 
-        const FPS = 6;
+        const FPS = 30;
         
         
         var rs = document.querySelector(".button2");
         rs.onclick = function translate(){
             setInterval(() => {
-                width=video.width;
-                height=video.height;
-                context.drawImage(video, 0, 0, width , height );
+
+                context.drawImage(video, 0, 0, width, height);
+                context.fillText("Hello", 100, 100);
                 var data = canvas.toDataURL('image/jpeg', 0.5);
                 context.clearRect(0, 0, width,height );
                 socket.emit('image', data); //image 이벤트가 발생하면 data를 서버에 송신 data를 받기 위해 서버에서는 image 이벤트리스트를 만들놔야함
@@ -150,11 +155,6 @@
                 var infoEl= document.getElementById('result'); 
                 infoEl.value =  data
             });
-        
-       
-
-       
-        
     </script>
 </body>
 </html>
