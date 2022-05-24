@@ -4,16 +4,18 @@ import time, io, os, time, sys, natsort, random, math
 from PIL import Image
 import base64,cv2
 import numpy as np
+import joblib
 
 # import library 
 import numpy as np
-from matplotlib import pyplot as plt
+import pandas as pd
 import mediapipe as mp
 from glob import glob
 from PIL import Image, ImageDraw, ImageFont
 from tensorflow.keras.models import Sequential   
 from tensorflow.keras.layers import LSTM, Dense
 from tensorflow.keras.callbacks import TensorBoard
+from sklearn.preprocessing import LabelEncoder
 
 app = Flask(__name__)
 # SocketIO는 ‘app’에 적용되고 있으며 나중에 애플리케이션을 실행할 때 앱 대신 socketio를 사용할 수 있도록 socketio 변수에 저장된다.
@@ -36,14 +38,42 @@ def extract_keypoints(results):
     rh = np.array([[res.x*3, res.y*3, res.z*3] for res in results.right_hand_landmarks.landmark]).flatten() if results.right_hand_landmarks else np.zeros(21*3)    
     return np.concatenate([lh, rh])
 
+my_dict ={"None":0, "계산":1, "고맙다":2, "괜찮다":3, "기다리다":4, "나" :5, "네": 6,
+          "다음":7, "달다":8, "더":9, "도착":10, "돈":11, "또":12, 
+          "맵다":13, "먼저":14, "무엇":15, "물":16, "물음":17, "부탁":18, "사람":19, 
+          "수저":20, "시간":21, "아니요":22, "어디":23, "얼마":24,"예약":25,
+          "오다":26, "우리":27, "음식":28, "이거":29, "인기":30, "있다":31, "자리":32,
+          "접시":33, "제일":34, "조금":35, "주문":36, "주세요":37, "짜다":38, "책":39,
+          "추천":40, "화장실":41, "확인":42}
+
+## 받은 5개의 단어들을 데이터 프레임으로 변환 
+def make_word_df(word0, word1, word2, word3, word4):
+    info = [[word0, word1, word2, word3, word4]]
+    df = pd.DataFrame(info, columns = ['target0', 'target1', 'target2', 'target3', 'target4'])
+    return df
+
+## 받은 단어를 숫자로 반환
+def get_key(val):
+    for key, value in my_dict.items():
+         if val == key:
+             return value
+ 
+    return "There is no such Key"
+
+## 인자로 받은 단어 5개의 데이터프레임을 
+def make_num_df(input_1):
+    num_oflist = []
+    for i in input_1.columns:
+        num_oflist.append(get_key(input_1[i].values))
+    input2 = make_word_df(num_oflist[0], num_oflist[1], num_oflist[2], num_oflist[3], num_oflist[4])
+    return input2
+
 log_dir = os.path.join('Logs')
 tb_callback = TensorBoard(log_dir = log_dir)
 
-actions = np.array(['None', '계산', '고맙다', '괜찮다', '기다리다', '나', '네', '다음',
-                   '달다', '더', '도착', '돈', '또', '맵다', '먼저', '무엇', '물', '물음',
-                   '부탁', '사람', '수저', '시간', '아니요', '어디', '얼마', '예약', '오다',
-                   '우리', '음식', '이거', '인기', '있다', '자리', '접시', '제일', '조금',
-                   '주문', '주세요', '짜다', '책', '추천', '화장실', '확인'])
+actions = np.array(['None', '나', '달다', '도착', '돈', '맵다', '먼저', '무엇', '물음', 
+                   '부탁', '사람', '시간', '얼마', '우리', '음식', '이거', '인기','있다',
+                   '자리', '주문', '주세요', '짜다','책', '추천', '확인','제일'])
 
 model = Sequential()
 model.add(LSTM(64, return_sequences=True, activation='relu', input_shape=(30, 126)))
@@ -54,8 +84,10 @@ model.add(Dense(32, activation='relu'))
 model.add(Dense(actions.shape[0], activation='softmax'))
 
 model.compile(optimizer='Adam', loss ='categorical_crossentropy', metrics=['categorical_accuracy'])
-model.load_weights("C:/Users/MASTER/Desktop/signlanguage_translator/actionxhand_data0524_0513.h5")
+model.load_weights("C:/Users/MASTER/Desktop/signlanguage_translator/actionxhand_data25X90_0307_1423.h5")
 
+rlf = joblib.load("C:/Users/MASTER/Desktop/signlanguage_translator/sentence_model.pkl")
+le = LabelEncoder()
 font = ImageFont.truetype("fonts/HMFMMUEX.TTC", 10)
 font2 = ImageFont.truetype("fonts/HMFMMUEX.TTC", 20)
 blue_color = (255,0,0)
@@ -100,9 +132,11 @@ def image(data_image):
     threshold = 0.7
     if(data_image == "delete"):
         if(len(sentence) != 0):
+            sequence = [] 
+            count = 0
             delete_word = sentence[-1]
-            delete_word = delete_word + "가 삭제되었습니다. 다시 동작해주세요"
             sentence.pop(-1)
+            delete_word = delete_word + "가 삭제되었습니다."
             emit('delete_back', delete_word)
         else:
             delete_word = "번역된 단어가 없습니다."
@@ -115,13 +149,13 @@ def image(data_image):
             image, results = mediapipe_detection(frame, holistic)
             keypoints = extract_keypoints(results)
             sequence.append(keypoints)
-            sequence = sequence[-30:]
             if (count == 29):
+                sentence_len1 = len(sentence)
                 res = model.predict(np.expand_dims(sequence, axis=0))[0]
                 print(actions[np.argmax(res)])
                 predictions.append(np.argmax(res))
                     
-                u = np.bincount(predictions[-10:])
+                u = np.bincount(predictions[-1:])
                 b = u.argmax()
                 if b == np.argmax(res): 
                     if res[np.argmax(res)] > threshold: 
@@ -131,22 +165,29 @@ def image(data_image):
                                     sentence.append(actions[np.argmax(res)])
                             else:
                                 if(actions[np.argmax(res)] != sentence[-1]):
-                                        sentence.append(actions[np.argmax(res)])
+                                    sentence.append(actions[np.argmax(res)])
                         else:
                             sentence.append(actions[np.argmax(res)])
-                    else:
-                        emit('response_back', "인식에 실패하였습니다. 다시 동작해주세요")
-                count = 0
-                if(len(sentence) > 0 and len(sentence) < 5):
-                    predict_word = sentence[-1]
-                    # emit the frame back
-                    emit('response_back', predict_word)
-                elif(len(sentence) == 5):
-                    predict_word = "단어를 전부 입력받았습니다."
-                    make_word = sentence.copy()
-                    sentence = []
-                    emit('response_back', predict_word)
 
+                sentence_len2 = len(sentence)
+                count = 0
+                sequence.clear()
+                if(sentence_len1 != sentence_len2):
+                    if(len(sentence) == 5):
+                        data_form = make_word_df(sentence[0], sentence[1], sentence[2], sentence[3], sentence[4])
+                        input_data = make_num_df(data_form)
+                        y_pred = rlf.predict(input_data)
+                        le.inverse_transform(y_pred)
+                        predict_word = np.array2string(le.inverse_transform(y_pred))
+                        sentence.clear()
+                        emit('response_back', predict_word)
+                    else:
+                        predict_word = sentence[-1]
+                        emit('response_back', predict_word)
+                else:
+                    predict_word = "failed"
+                    emit('response_back', predict_word)
+            
 
 if __name__ == '__main__':
     socketio.run(app ,debug=True)

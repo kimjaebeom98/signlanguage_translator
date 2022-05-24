@@ -71,6 +71,7 @@ def make_num_df(input_1):
 log_dir = os.path.join('Logs')
 tb_callback = TensorBoard(log_dir = log_dir)
 
+# Actions that we try to detect
 actions = np.array(['None', '계산', '고맙다', '괜찮다', '기다리다', '나', '네', '다음',
                    '달다', '더', '도착', '돈', '또', '맵다', '먼저', '무엇', '물', '물음',
                    '부탁', '사람', '수저', '시간', '아니요', '어디', '얼마', '예약', '오다',
@@ -86,7 +87,7 @@ model.add(Dense(32, activation='relu'))
 model.add(Dense(actions.shape[0], activation='softmax'))
 
 model.compile(optimizer='Adam', loss ='categorical_crossentropy', metrics=['categorical_accuracy'])
-model.load_weights("C:/Users/MASTER/Desktop/signlanguage_translator/actionxhand_data0523_2018")
+model.load_weights("C:/Users/MASTER/Desktop/signlanguage_translator/actionxhand_data0524_0513.h5")
 
 rlf = joblib.load("C:/Users/MASTER/Desktop/signlanguage_translator/sentence_model.pkl")
 le = LabelEncoder()
@@ -131,7 +132,7 @@ count = 0
 @socketio.on('image')
 def image(data_image):
     global sequence, sentence, predictions, count
-    threshold = 0.7
+    threshold = 0.5
     if(data_image == "delete"):
         if(len(sentence) != 0):
             sequence = [] 
@@ -143,6 +144,7 @@ def image(data_image):
         else:
             delete_word = "번역된 단어가 없습니다."
             emit('delete_back', delete_word)
+        return
     else:
         frame = (readb64(data_image))
         with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
@@ -151,38 +153,44 @@ def image(data_image):
             image, results = mediapipe_detection(frame, holistic)
             keypoints = extract_keypoints(results)
             sequence.append(keypoints)
-            if (count == 29):
+            print(len(sequence))
+            if (len(sequence) % 30 == 0):
                 sentence_len1 = len(sentence)
                 res = model.predict(np.expand_dims(sequence, axis=0))[0]
                 print(actions[np.argmax(res)])
+                
+                """
                 predictions.append(np.argmax(res))
-                    
                 u = np.bincount(predictions[-1:])
                 b = u.argmax()
                 if b == np.argmax(res): 
-                    if res[np.argmax(res)] > threshold: 
-                        
-                        if len(sentence) > 0: 
-                            if actions[np.argmax(res)] == 'None':
-                                    sentence.append(actions[np.argmax(res)])
-                            else:
-                                if(actions[np.argmax(res)] != sentence[-1]):
-                                    sentence.append(actions[np.argmax(res)])
+                
+                """
+                
+                if res[np.argmax(res)] > threshold: 
+                    if len(sentence) > 0: 
+                        if actions[np.argmax(res)] == 'None':
+                                sentence.append(actions[np.argmax(res)])
                         else:
-                            sentence.append(actions[np.argmax(res)])
+                            if(actions[np.argmax(res)] != sentence[-1]):
+                                sentence.append(actions[np.argmax(res)])
+                    else:
+                        sentence.append(actions[np.argmax(res)])
+                
 
                 sentence_len2 = len(sentence)
                 count = 0
                 sequence.clear()
                 if(sentence_len1 != sentence_len2):
+                    
                     if(len(sentence) == 5):
-                        predict_word = "finish"
-                        data_form = make_word_df(sentence[0], sentence[1], sentence[2], sentence[3], sentence[4])
+                        '''data_form = make_word_df(sentence[0], sentence[1], sentence[2], sentence[3], sentence[4])
                         input_data = make_num_df(data_form)
                         y_pred = rlf.predict(input_data)
                         le.inverse_transform(y_pred)
-                        predict_word = np.array2string(le.inverse_transform(y_pred))
+                        predict_word = np.array2string(le.inverse_transform(y_pred))'''
                         sentence.clear()
+                        predict_word = 'test'
                         emit('response_back', predict_word)
                     else:
                         predict_word = sentence[-1]
@@ -190,6 +198,7 @@ def image(data_image):
                 else:
                     predict_word = "failed"
                     emit('response_back', predict_word)
+            emit('start', 'start')
             
 
 if __name__ == '__main__':

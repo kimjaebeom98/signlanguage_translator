@@ -51,6 +51,8 @@
         video.width = 640;
         video.height = 480; 
 
+        count_word = 0;
+
 
         function start(){
             if (navigator.mediaDevices.getUserMedia) {
@@ -159,16 +161,53 @@
                 infoEl.value = data + "\n" + str;
         });
 
-        itt = function(){
+        function translate(){
+            count = 1;
+            itt = setTimeout(function run(){
                 send30();
-                timer = setTimeout(itt, 300);
-            }
+                itt = setTimeout(run,300);
+            },300)
+        }
+        
+
+        function abc1(){
+            clearTimeout(itt);
+        }
+        /*
+        itt = function(){
+                if(count_word ==5)
+                {
+                    clearTimeout(timer);
+                    return;
+                }
+                else
+                {
+                    send30();
+                    timer = setTimeout(itt, 300);
+                }
+        }
+        */
+        
 
         // 번역 시작 
+        /*
         function translate(){
             count = 0;
-            itt();
+            
         }
+        */
+
+        function send30(){
+            width=video.width;
+                height=video.height;
+                context.drawImage(video, 0, 0, width , height );
+                var data = canvas.toDataURL('image/jpeg', 0.5);
+                context.clearRect(0, 0, width,height );
+                frame_count.innerHTML = count;
+                console.log(count);
+                socket.emit('image', data); //image 이벤트가 발생하면 data를 서버에 송신 data를 받기 위해 서버에서는 image 이벤트리스트를 만들놔야함
+        }
+        /*
 
         function send30(){
             if (count ==  30){
@@ -180,40 +219,43 @@
                 context.drawImage(video, 0, 0, width , height );
                 var data = canvas.toDataURL('image/jpeg', 0.5);
                 context.clearRect(0, 0, width,height );
-                frame_count.innerHTML = count
-                console.log(count)
+                frame_count.innerHTML = count;
+                console.log(count);
                 socket.emit('image', data); //image 이벤트가 발생하면 data를 서버에 송신 data를 받기 위해 서버에서는 image 이벤트리스트를 만들놔야함
                 count++;
             }
         }
+        */
 
         socket.on('response_back', function(data){
-            if(data == "finish")
-            {
-                clearTimeout(timer);
-                str = '';
-                var infoEl= document.getElementById('result'); 
-                infoEl.value = "단어를 전부 입력받았습니다.";
-            }
-            else if(data == "failed")
+            count_word++;
+            if(data == "failed")
             {
                 var infoEl= document.getElementById('result'); 
                 infoEl.value = str+ "\n"+ "단어 인식에 실패하였습니다. 다시 동작해주세요.";
+                translate();
             }
             else
             {
-                jb.innerHTML = "<p style = 'margin-top : -100px; text-align:center;font-size:30px;color:#ffffff'> 다음 단어를 입력해주세요.</p>";
-                str_save = str;
-                str += ' ' + data;
-                var infoEl = document.getElementById('result');
-                infoEl.value = str;
-                
+                if(count_word == 5)
+                {
+                    count_word = 0;
+                    str = '';
+                    var infoEl= document.getElementById('result'); 
+                    infoEl.value = data;
+                }
+                else
+                {
+                    jb.innerHTML = "<p style = 'margin-top : -100px; text-align:center;font-size:30px;color:#ffffff'> 다음 단어를 입력해주세요.</p>";
+                    str_save = str;
+                    str += ' ' + data;
+                    var infoEl = document.getElementById('result');
+                    infoEl.value = str;
+                    translate();
+                }
             }
             count = 0;
         });
-
-
-        
     </script>
 </body>
 </html>
